@@ -236,7 +236,8 @@ minetest.log("action", "[randomized_humanoids] Discovered " .. total_models .. "
 -- -----------------------------------------------------------------------------
 
 local function register_mob(char_name, data)
-    local mob_name = modname .. ":" .. char_name
+    -- the user requested to prefix them with npc_monster
+    local mob_name = "npc_monster:" .. char_name
     local def = {}
 
     def.type = "monster"
