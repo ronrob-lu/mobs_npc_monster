@@ -282,6 +282,23 @@ local function register_mob(char_name, data)
     def.attack_type = "dogfight"
     def.armor = 100
 
+    -- Handle Rotation Fix natively in base def for GLB
+    if data.is_glb then
+        local mob_override = minetest.settings:get_bool("randomized_humanoids_" .. char_name .. "_rotation_fix")
+        local apply_fix = false
+
+        if mob_override ~= nil then
+            apply_fix = mob_override
+        else
+            apply_fix = glb_rotation_fix_global
+        end
+
+        if apply_fix then
+            def.visual_yaw = math.pi
+            def.visual_yaw_offset = math.pi
+        end
+    end
+
     -- Animation Mapping
     -- Standard framework requires these table layouts to not crash.
     -- B3D will use frames from the model implicitly if bounds fit, or use these default standard fallbacks.
@@ -378,26 +395,6 @@ local function register_mob(char_name, data)
                 self.object:set_properties({textures = self.base_texture})
             end
 
-            -- GLB rotation fix auto-detection / override per-mob
-            if data.is_glb then
-                local mob_override = minetest.settings:get_bool("randomized_humanoids_" .. char_name .. "_rotation_fix")
-                local apply_fix = false
-
-                if mob_override ~= nil then
-                    apply_fix = mob_override
-                else
-                    if not auto_detect_tested then
-                        auto_detect_tested = true
-                        auto_detect_fix = glb_rotation_fix_global -- Since actual auto-detect algorithms vary wildly, fallback to global as a cached default
-                    end
-                    apply_fix = auto_detect_fix
-                end
-
-                if apply_fix then
-                    self.object:set_properties({visual_yaw_offset = math.pi})
-                end
-            end
-
             if old_on_spawn then old_on_spawn(self) end
         end
 
@@ -420,25 +417,6 @@ local function register_mob(char_name, data)
             if #data.textures > 1 then
                 self.base_texture = {data.textures[math.random(#data.textures)]}
                 self.object:set_properties({textures = self.base_texture})
-            end
-
-            if data.is_glb then
-                local mob_override = minetest.settings:get_bool("randomized_humanoids_" .. char_name .. "_rotation_fix")
-                local apply_fix = false
-
-                if mob_override ~= nil then
-                    apply_fix = mob_override
-                else
-                    if not auto_detect_tested then
-                        auto_detect_tested = true
-                        auto_detect_fix = glb_rotation_fix_global
-                    end
-                    apply_fix = auto_detect_fix
-                end
-
-                if apply_fix then
-                    self.object:set_properties({visual_yaw_offset = math.pi})
-                end
             end
 
             if old_on_spawn then old_on_spawn(self) end
