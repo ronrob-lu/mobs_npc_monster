@@ -119,8 +119,34 @@ local function parse_glb_animations(filepath)
 
         if data and data.animations then
             local anims = {}
-            for _, anim in ipairs(data.animations) do
-                anims[anim.name] = true -- Just track existence for GLB string-based animations mapping
+            for i, anim in ipairs(data.animations) do
+                local name = anim.name or ("anim_" .. tostring(i-1))
+
+                -- Find the min and max times across all samplers for this animation
+                local min_t = 999999
+                local max_t = -999999
+
+                if anim.samplers then
+                    for _, sampler in ipairs(anim.samplers) do
+                        if sampler.input then
+                            local accessor = data.accessors and data.accessors[sampler.input + 1]
+                            if accessor then
+                                if accessor.min and accessor.min[1] then
+                                    min_t = math.min(min_t, accessor.min[1])
+                                end
+                                if accessor.max and accessor.max[1] then
+                                    max_t = math.max(max_t, accessor.max[1])
+                                end
+                            end
+                        end
+                    end
+                end
+
+                if min_t ~= 999999 and max_t ~= -999999 then
+                    anims[name] = { start_time = min_t, end_time = max_t }
+                else
+                    anims[name] = true
+                end
             end
             return anims
         end
@@ -269,40 +295,66 @@ local function register_mob(char_name, data)
     }
 
     if data.is_glb and data.animations then
-        def.animation = {
-            stand_start = 0, stand_end = 1, stand_speed = 1,
-            walk_start = 0, walk_end = 1, walk_speed = 1,
-            run_start = 0, run_end = 1, run_speed = 1,
-            punch_start = 0, punch_end = 1, punch_speed = 1,
-            die_start = 0, die_end = 1, die_speed = 1,
+        local function get_bounds(name)
+            if data.animations[name] and type(data.animations[name]) == "table" then
+                return data.animations[name].start_time, data.animations[name].end_time
+            end
+            return nil, nil
+        end
+        local function safe_start(name1, name2)
+            local s, e = get_bounds(name1)
+            if s and e then return s + 0.05, e - 0.05 end
+            if name2 then
+                s, e = get_bounds(name2)
+                if s and e then return s + 0.05, e - 0.05 end
+            end
+            return 0, 1
+        end
 
-            -- We override the engine's animation setup string mappings if animations are known to exist for GLB
-            stand_anim = (data.animations["idle"] and "idle") or (data.animations["static"] and "static") or nil,
-            walk_anim = (data.animations["walk"] and "walk") or nil,
-            run_anim = (data.animations["sprint"] and "sprint") or nil,
-            punch_anim = (data.animations["attack-melee-right"] and "attack-melee-right") or (data.animations["attack-melee-left"] and "attack-melee-left") or nil,
-            die_anim = (data.animations["die"] and "die") or nil,
-            sit_anim = (data.animations["sit"] and "sit") or nil,
-            drive_anim = (data.animations["drive"] and "drive") or nil,
-            pick_up_anim = (data.animations["pick-up"] and "pick-up") or nil,
-            emote_yes_anim = (data.animations["emote-yes"] and "emote-yes") or nil,
-            emote_no_anim = (data.animations["emote-no"] and "emote-no") or nil,
-            holding_right_anim = (data.animations["holding-right"] and "holding-right") or nil,
-            holding_left_anim = (data.animations["holding-left"] and "holding-left") or nil,
-            holding_both_anim = (data.animations["holding-both"] and "holding-both") or nil,
-            holding_right_shoot_anim = (data.animations["holding-right-shoot"] and "holding-right-shoot") or nil,
-            holding_left_shoot_anim = (data.animations["holding-left-shoot"] and "holding-left-shoot") or nil,
-            holding_both_shoot_anim = (data.animations["holding-both-shoot"] and "holding-both-shoot") or nil,
-            attack_kick_right_anim = (data.animations["attack-kick-right"] and "attack-kick-right") or nil,
-            attack_kick_left_anim = (data.animations["attack-kick-left"] and "attack-kick-left") or nil,
-            interact_right_anim = (data.animations["interact-right"] and "interact-right") or nil,
-            interact_left_anim = (data.animations["interact-left"] and "interact-left") or nil,
-            wheelchair_sit_anim = (data.animations["wheelchair-sit"] and "wheelchair-sit") or nil,
-            wheelchair_move_forward_anim = (data.animations["wheelchair-move-forward"] and "wheelchair-move-forward") or nil,
-            wheelchair_move_back_anim = (data.animations["wheelchair-move-back"] and "wheelchair-move-back") or nil,
-            wheelchair_move_left_anim = (data.animations["wheelchair-move-left"] and "wheelchair-move-left") or nil,
-            wheelchair_move_right_anim = (data.animations["wheelchair-move-right"] and "wheelchair-move-right") or nil,
+        local stand_s, stand_e = safe_start("idle", "static")
+        local walk_s, walk_e = safe_start("walk")
+        local run_s, run_e = safe_start("sprint")
+        local punch_s, punch_e = safe_start("attack-melee-right", "attack-melee-left")
+        local die_s, die_e = safe_start("die")
+
+        def.animation = {
+            stand_start = stand_s, stand_end = stand_e, stand_speed = 1,
+            walk_start = walk_s, walk_end = walk_e, walk_speed = 1,
+            run_start = run_s, run_end = run_e, run_speed = 1,
+            punch_start = punch_s, punch_end = punch_e, punch_speed = 1,
+            die_start = die_s, die_end = die_e, die_speed = 1,
         }
+
+        -- Also expose the bounds for all other animations in case other mods use them
+        local function assign_bounds(target_prefix, anim_name)
+            local s, e = safe_start(anim_name)
+            if s and e and e > s then
+                def.animation[target_prefix .. "_start"] = s
+                def.animation[target_prefix .. "_end"] = e
+                def.animation[target_prefix .. "_speed"] = 1
+            end
+        end
+
+        assign_bounds("sit", "sit")
+        assign_bounds("drive", "drive")
+        assign_bounds("pick_up", "pick-up")
+        assign_bounds("emote_yes", "emote-yes")
+        assign_bounds("emote_no", "emote-no")
+        assign_bounds("holding_right", "holding-right")
+        assign_bounds("holding_left", "holding-left")
+        assign_bounds("holding_both", "holding-both")
+        assign_bounds("holding_right_shoot", "holding-right-shoot")
+        assign_bounds("holding_left_shoot", "holding-left-shoot")
+        assign_bounds("holding_both_shoot", "holding-both-shoot")
+        assign_bounds("attack_kick_right", "attack-kick-right")
+        assign_bounds("attack_kick_left", "attack-kick-left")
+        assign_bounds("interact_right", "interact-right")
+        assign_bounds("interact_left", "interact-left")
+        assign_bounds("wheelchair_sit", "wheelchair-sit")
+        assign_bounds("wheelchair_move_forward", "wheelchair-move-forward")
+        assign_bounds("wheelchair_move_back", "wheelchair-move-back")
+        assign_bounds("wheelchair_move_left", "wheelchair-move-left")
+        assign_bounds("wheelchair_move_right", "wheelchair-move-right")
     end
 
     -- Setup auto detection flag for 180 deg fix
