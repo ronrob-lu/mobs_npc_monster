@@ -1,0 +1,14 @@
+# Health variance percentage (+/-) (0-100)
+randomized_humanoids_health_var (Health Variance) int 30 0 100
+
+# Damage variance percentage (+/-) (0-100)
+randomized_humanoids_damage_var (Damage Variance) int 25 0 100
+
+# Velocity variance percentage (+/-) (0-100)
+randomized_humanoids_velocity_var (Velocity Variance) int 15 0 100
+
+# Knockback variance percentage (+/-) (0-100)
+randomized_humanoids_knockback_var (Knockback Variance) int 20 0 100
+
+# Apply 180-degree rotation fix to GLB models by default (true/false)
+randomized_humanoids_glb_rotation_fix (GLB Rotation Fix) bool true
