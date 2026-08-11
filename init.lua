@@ -404,7 +404,7 @@ local function register_mob(char_name, data)
         mcl_mobs.register_mob(mob_name, mcl_def)
 
         if data.inv_icon then
-            mcl_mobs.register_egg(mob_name, char_name .. " Spawn Egg", data.inv_icon, 1)
+            mcl_mobs.register_egg(mob_name, char_name .. " Spawn Egg", data.inv_icon, 0)
         end
     end
 
@@ -447,7 +447,7 @@ local function register_mob(char_name, data)
         mobs:register_mob(mob_name, redo_def)
 
         if data.inv_icon then
-            mobs:register_egg(mob_name, char_name .. " Spawn Egg", data.inv_icon, 1)
+            mobs:register_egg(mob_name, char_name .. " Spawn Egg", data.inv_icon, 0)
         end
     end
 end
