@@ -12,7 +12,6 @@ local health_var = tonumber(minetest.settings:get("randomized_humanoids_health_v
 local damage_var = tonumber(minetest.settings:get("randomized_humanoids_damage_var")) or 25
 local velocity_var = tonumber(minetest.settings:get("randomized_humanoids_velocity_var")) or 15
 local knockback_var = tonumber(minetest.settings:get("randomized_humanoids_knockback_var")) or 20
-local glb_rotation_fix_global = minetest.settings:get_bool("randomized_humanoids_glb_rotation_fix", true)
 
 -- -----------------------------------------------------------------------------
 -- Helpers
@@ -271,6 +270,7 @@ local function register_mob(char_name, data)
     def.health_max = 20
     def.collisionbox = {-0.3, 0.0, -0.3, 0.3, 1.7, 0.3}
     def.visual = "mesh"
+    def.visual_size = {x = 10, y = 10, z = 10}
     def.mesh = data.model
     def.textures = {data.textures[1]}
 
@@ -281,23 +281,6 @@ local function register_mob(char_name, data)
     def.damage = 3
     def.attack_type = "dogfight"
     def.armor = 100
-
-    -- Handle Rotation Fix natively in base def for GLB
-    if data.is_glb then
-        local mob_override = minetest.settings:get_bool("randomized_humanoids_" .. char_name .. "_rotation_fix")
-        local apply_fix = false
-
-        if mob_override ~= nil then
-            apply_fix = mob_override
-        else
-            apply_fix = glb_rotation_fix_global
-        end
-
-        if apply_fix then
-            def.visual_yaw = math.pi
-            def.visual_yaw_offset = math.pi
-        end
-    end
 
     -- Animation Mapping
     -- Standard framework requires these table layouts to not crash.
@@ -320,10 +303,16 @@ local function register_mob(char_name, data)
         end
         local function safe_start(name1, name2)
             local s, e = get_bounds(name1)
-            if s and e then return s + 0.05, e - 0.05 end
+            if s and e then
+                if e - s > 0.1 then return s + 0.05, e - 0.05 end
+                return s, e
+            end
             if name2 then
                 s, e = get_bounds(name2)
-                if s and e then return s + 0.05, e - 0.05 end
+                if s and e then
+                    if e - s > 0.1 then return s + 0.05, e - 0.05 end
+                    return s, e
+                end
             end
             return 0, 1
         end
