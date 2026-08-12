@@ -262,7 +262,7 @@ minetest.log("action", "[randomized_humanoids] Discovered " .. total_models .. "
 
 local function register_mob(char_name, data)
     -- the user requested to prefix them with npc_monster
-    local mob_name = ":npc_monster:" .. char_name
+    local mob_name = "npc_monster:" .. char_name
     local def = {}
 
     def.type = "monster"
@@ -282,16 +282,24 @@ local function register_mob(char_name, data)
     def.attack_type = "dogfight"
     def.armor = 100
 
+    def.attack_players = true
+    def.attack_npcs = true
+    def.attack_animals = true
+    def.passive = false
+
     -- Animation Mapping
     -- Standard framework requires these table layouts to not crash.
     -- B3D will use frames from the model implicitly if bounds fit, or use these default standard fallbacks.
     -- If using GLB, string animations mapped intelligently over 25 action bounds natively supported by Luanti are applied.
     def.animation = {
+        speed_normal = 15, speed_run = 15,
         stand_start = 0, stand_end = 40, stand_speed = 15,
         walk_start = 41, walk_end = 81, walk_speed = 15,
         run_start = 82, run_end = 122, run_speed = 15,
         punch_start = 123, punch_end = 163, punch_speed = 15,
         die_start = 164, die_end = 204, die_speed = 15,
+        attack_start = 123, attack_end = 163, attack_speed = 15,
+        shoot_start = 123, shoot_end = 163, shoot_speed = 15,
     }
 
     if data.is_glb then
@@ -322,11 +330,14 @@ local function register_mob(char_name, data)
         local die_s, die_e = safe_start("die")
 
         def.animation = {
+            speed_normal = 1, speed_run = 1,
             stand_start = stand_s, stand_end = stand_e, stand_speed = 1,
             walk_start = walk_s, walk_end = walk_e, walk_speed = 1,
             run_start = run_s, run_end = run_e, run_speed = 1,
             punch_start = punch_s, punch_end = punch_e, punch_speed = 1,
             die_start = die_s, die_end = die_e, die_speed = 1,
+            attack_start = punch_s, attack_end = punch_e, attack_speed = 1,
+            shoot_start = punch_s, shoot_end = punch_e, shoot_speed = 1,
         }
 
         -- Also expose the bounds for all other animations in case other mods use them
@@ -376,6 +387,10 @@ local function register_mob(char_name, data)
         mcl_def.on_spawn = function(self)
             apply_randomization(self)
 
+            if self.animation then
+                self.animation = table.copy(self.animation)
+            end
+
             -- Texture randomization (MCL)
             if #data.textures > 1 then
                 self.base_texture = {data.textures[math.random(#data.textures)]}
@@ -399,6 +414,10 @@ local function register_mob(char_name, data)
         local old_on_spawn = redo_def.on_spawn
         redo_def.on_spawn = function(self)
             apply_randomization(self)
+
+            if self.animation then
+                self.animation = table.copy(self.animation)
+            end
 
             -- Randomize texture if multiple
             if #data.textures > 1 then
