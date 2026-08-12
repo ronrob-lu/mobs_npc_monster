@@ -270,7 +270,7 @@ local function register_mob(char_name, data)
     def.health_max = 20
     def.collisionbox = {-0.3, 0.0, -0.3, 0.3, 1.7, 0.3}
     def.visual = "mesh"
-    def.visual_size = {x = 7.5, y = 7.5, z = 7.5}
+    def.visual_size = {x = 6.5, y = 6.5, z = 6.5}
     def.mesh = data.model
     def.textures = {data.textures[1]}
 
@@ -295,8 +295,7 @@ local function register_mob(char_name, data)
     }
 
     if data.is_glb then
-        def.visual_yaw = math.pi
-        def.visual_yaw_offset = math.pi
+        def.rotate = 180
     end
 
     if data.is_glb and data.animations then
