@@ -227,6 +227,7 @@ local function register_mob(char_name, data)
     def.walk_velocity = 1.5
     def.run_velocity = 3.0
     def.damage = 3
+    def.reach = 2
     def.attack_type = "dogfight"
     def.armor = 100
 
