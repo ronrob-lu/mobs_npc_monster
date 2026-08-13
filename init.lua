@@ -156,105 +156,53 @@ local function parse_glb_animations(filepath)
 end
 
 local discovered_characters = {}
-local models = get_files_recursive(modpath .. "/models")
 local textures = get_files_recursive(modpath .. "/textures")
 
 local texture_set = {}
 local inv_icons = {}
 
--- Map textures (store relative paths to handle folders)
 for _, tex in ipairs(textures) do
-    local filename = tex:match("([^/]+)$")
-    texture_set[tex] = filename
-    if filename and filename:sub(1, 4) == "inv_" then
-        inv_icons[filename] = tex
+    local fn = tex:match("([^/]+)$")
+    if fn then
+        if fn:match("^inv_") then
+            inv_icons[fn] = tex
+        else
+            texture_set[tex] = fn
+        end
     end
 end
 
-local total_models = 0
-local total_textures = #textures
+local total_textures = 0
 local total_inv_icons = 0
 
-for k, v in pairs(inv_icons) do total_inv_icons = total_inv_icons + 1 end
+for _ in pairs(texture_set) do total_textures = total_textures + 1 end
+for _ in pairs(inv_icons) do total_inv_icons = total_inv_icons + 1 end
 
-local used_textures = {}
-
--- Process Models
-for _, model_rel in ipairs(models) do
-    local model_filename = model_rel:match("([^/]+)$")
-    if model_filename and (model_filename:match("%.glb$") or model_filename:match("%.b3d$") or model_filename:match("%.obj$")) then
-        total_models = total_models + 1
-        local char_name = model_filename:match("^(.*)%.[^%.]+$")
-
-        -- Find textures: exact match, variant match, OR folder match
-        local char_textures = {}
-        for tex_rel, tex_name in pairs(texture_set) do
-            local dir_name = tex_rel:match("^(.*)/[^/]+$")
-
-            if tex_name == char_name .. ".png" or
-               tex_name:match("^" .. char_name .. "_.*%.png$") or
-               (dir_name and dir_name == char_name) then
-                table.insert(char_textures, tex_rel)
-                used_textures[tex_rel] = true
-            end
-        end
-
-        -- Find egg icon
+for tex_rel, tex_name in pairs(texture_set) do
+    local char_name = tex_name:match("^(.*)%.[^%.]+$")
+    if char_name then
         local inv_icon_name = "inv_" .. char_name .. ".png"
-
-        -- Use the filename directly, since Minetest engine natively flattens all mod asset namespaces.
         local inv_icon_filename = inv_icon_name
         local inv_icon_path = inv_icons[inv_icon_name]
 
         if not inv_icon_path then
-            if #char_textures > 0 then
-                inv_icon_filename = texture_set[char_textures[1]]
-                minetest.log("warning", "[randomized_humanoids] Missing spawn egg icon for " .. char_name .. ", falling back to " .. inv_icon_filename)
-            else
-                inv_icon_filename = nil
-            end
-        else
-             used_textures[inv_icon_path] = true
+            inv_icon_filename = tex_name
+            minetest.log("warning", "[randomized_humanoids] Missing spawn egg icon for " .. char_name .. ", falling back to " .. inv_icon_filename)
         end
 
-        if #char_textures > 0 then
-            -- Parse animations if GLB
-            local anim_data = nil
-            local is_glb = model_filename:match("%.glb$") ~= nil
-            if is_glb then
-                anim_data = parse_glb_animations(modpath .. "/models/" .. model_rel)
-            end
-
-            -- Keep just the filename of textures to avoid invisibility
-            local char_textures_filenames = {}
-            for _, t in ipairs(char_textures) do
-                table.insert(char_textures_filenames, texture_set[t])
-            end
-
-            discovered_characters[char_name] = {
-                model = model_filename,
-                textures = char_textures_filenames,
-                inv_icon = inv_icon_filename,
-                animations = anim_data,
-                is_glb = is_glb
-            }
-        else
-            minetest.log("warning", "[randomized_humanoids] Orphaned model found with no textures: " .. model_rel)
-        end
-    end
-end
-
--- Warn about unused textures
-for tex_rel, tex_name in pairs(texture_set) do
-    if not used_textures[tex_rel] and not inv_icons[tex_name] then
-        minetest.log("warning", "[randomized_humanoids] Orphaned texture found with no matching model: " .. tex_rel)
+        discovered_characters[char_name] = {
+            model = "character.glb",
+            textures = {tex_name},
+            inv_icon = inv_icon_filename,
+            is_glb = true
+        }
     end
 end
 
 local valid_chars = 0
 for k,v in pairs(discovered_characters) do valid_chars = valid_chars + 1 end
 
-minetest.log("action", "[randomized_humanoids] Discovered " .. total_models .. " models, " .. total_textures .. " textures, " .. total_inv_icons .. " spawn egg icons, " .. valid_chars .. " valid character sets")
+minetest.log("action", "[randomized_humanoids] Discovered " .. total_textures .. " textures, " .. total_inv_icons .. " spawn egg icons, " .. valid_chars .. " valid character sets")
 
 -- -----------------------------------------------------------------------------
 -- Registration Wrapper
@@ -306,70 +254,24 @@ local function register_mob(char_name, data)
         def.rotate = 180
     end
 
-    if data.is_glb and data.animations then
-        local function get_bounds(name)
-            if data.animations[name] and type(data.animations[name]) == "table" then
-                return data.animations[name].start_time, data.animations[name].end_time
-            end
-            return nil, nil
-        end
-        local function safe_start(name1, name2)
-            local s, e = get_bounds(name1)
-            if s and e then return s, e end
-            if name2 then
-                s, e = get_bounds(name2)
-                if s and e then return s, e end
-            end
-            return 0, 1
-        end
-
-        local stand_s, stand_e = safe_start("idle", "static")
-        local walk_s, walk_e = safe_start("walk")
-        local run_s, run_e = safe_start("sprint")
-        local punch_s, punch_e = safe_start("attack-melee-right", "attack-melee-left")
-        local die_s, die_e = safe_start("die")
+    if data.is_glb then
+        -- Baked continous timeline extracted from the node script processing the master glb
+        local stand_s, stand_e = 0, 1.33
+        local walk_s, walk_e = 1.33, 2.0
+        local run_s, run_e = 2.0, 2.5
+        local die_s, die_e = 2.5, 2.83
+        local attack_s, attack_e = 2.83, 3.25
 
         def.animation = {
             speed_normal = 1, speed_run = 1,
             stand_start = stand_s, stand_end = stand_e, stand_speed = 1,
             walk_start = walk_s, walk_end = walk_e, walk_speed = 1,
             run_start = run_s, run_end = run_e, run_speed = 1,
-            punch_start = punch_s, punch_end = punch_e, punch_speed = 1,
+            punch_start = attack_s, punch_end = attack_e, punch_speed = 1,
             die_start = die_s, die_end = die_e, die_speed = 1,
-            attack_start = punch_s, attack_end = punch_e, attack_speed = 1,
-            shoot_start = punch_s, shoot_end = punch_e, shoot_speed = 1,
+            attack_start = attack_s, attack_end = attack_e, attack_speed = 1,
+            shoot_start = attack_s, shoot_end = attack_e, shoot_speed = 1,
         }
-
-        -- Also expose the bounds for all other animations in case other mods use them
-        local function assign_bounds(target_prefix, anim_name)
-            local s, e = safe_start(anim_name)
-            if s and e and e > s then
-                def.animation[target_prefix .. "_start"] = s
-                def.animation[target_prefix .. "_end"] = e
-                def.animation[target_prefix .. "_speed"] = 1
-            end
-        end
-
-        assign_bounds("sit", "sit")
-        assign_bounds("drive", "drive")
-        assign_bounds("pick_up", "pick-up")
-        assign_bounds("emote_yes", "emote-yes")
-        assign_bounds("emote_no", "emote-no")
-        assign_bounds("holding_right", "holding-right")
-        assign_bounds("holding_left", "holding-left")
-        assign_bounds("holding_both", "holding-both")
-        assign_bounds("holding_right_shoot", "holding-right-shoot")
-        assign_bounds("holding_left_shoot", "holding-left-shoot")
-        assign_bounds("holding_both_shoot", "holding-both-shoot")
-        assign_bounds("attack_kick_right", "attack-kick-right")
-        assign_bounds("attack_kick_left", "attack-kick-left")
-        assign_bounds("interact_right", "interact-right")
-        assign_bounds("interact_left", "interact-left")
-        assign_bounds("wheelchair_sit", "wheelchair-sit")
-        assign_bounds("wheelchair_move_forward", "wheelchair-move-forward")
-        assign_bounds("wheelchair_move_back", "wheelchair-move-back")
-        assign_bounds("wheelchair_move_left", "wheelchair-move-left")
-        assign_bounds("wheelchair_move_right", "wheelchair-move-right")
     end
 
     -- Setup auto detection flag for 180 deg fix
