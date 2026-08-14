@@ -308,6 +308,7 @@ local function register_mob(char_name, data)
         if data.inv_icon then
             mcl_mobs.register_egg(mob_name, char_name .. " Spawn Egg", data.inv_icon, 0)
         end
+        mcl_mobs.register_spawn(mob_name, {"group:stone", "group:dirt", "group:soil", "group:sand", "group:crumbly", "group:cracky"}, 7, 0, 7000, 1, 31000)
     end
 
     if has_mobs_redo then
@@ -336,6 +337,7 @@ local function register_mob(char_name, data)
         if data.inv_icon then
             mobs:register_egg(mob_name, char_name .. " Spawn Egg", data.inv_icon, 0)
         end
+        mobs:register_spawn(mob_name, {"group:stone", "group:dirt", "group:soil", "group:sand", "group:crumbly", "group:cracky"}, 7, 0, 7000, 1, 31000)
     end
 end
 
