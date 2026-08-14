@@ -230,6 +230,7 @@ local function register_mob(char_name, data)
     def.reach = 2
     def.attack_type = "dogfight"
     def.armor = 100
+    def.floats = 0
 
     def.attack_players = true
     def.attack_npcs = true
