@@ -1,4 +1,4 @@
-# Randomized Humanoids
+# Mobs NPC Monster
 
 This is a Luanti (formerly Minetest) mod that adds randomized attribute variation to humanoid monster-type mobs.
 A critical aspect of this mod is its dual-game compatibility across the Minetest Game (MTG) ecosystem (using `mobs_redo`) and Mineclonia (using `mcl_mobs`). Since both games run on the single Luanti engine, they share the same rendering pipeline and logic underneath.
@@ -43,7 +43,7 @@ Mapping differences between `mobs_redo` and `mcl_mobs` are abstracted gracefully
 You can control variance amounts via Luanti's Settings menu. Under the hood, these values dictate randomized variation relative to the base values on initialization. (e.g. Health varies ±30%, Damage varies ±25%). The random seed uses the standard game state generator globally provided by Luanti.
 
 ## Installation
-Since everything runs under the Luanti engine, installation is identical: drop the `randomized_humanoids` folder into the respective `/mods/` directory of your world or minetest path.
+Since everything runs under the Luanti engine, installation is identical: drop the `mobs_npc_monster` folder into the respective `/mods/` directory of your world or minetest path.
 
 ## Credits & License
 - **Code:** Licensed under MIT by ronrob-lu.
