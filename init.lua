@@ -8,10 +8,10 @@ local has_mcl_mobs = minetest.get_modpath("mcl_mobs") ~= nil
 -- Settings
 -- -----------------------------------------------------------------------------
 
-local health_var = tonumber(minetest.settings:get("randomized_humanoids_health_var")) or 30
-local damage_var = tonumber(minetest.settings:get("randomized_humanoids_damage_var")) or 25
-local velocity_var = tonumber(minetest.settings:get("randomized_humanoids_velocity_var")) or 15
-local knockback_var = tonumber(minetest.settings:get("randomized_humanoids_knockback_var")) or 20
+local health_var = tonumber(minetest.settings:get("mobs_npc_monster_health_var")) or 30
+local damage_var = tonumber(minetest.settings:get("mobs_npc_monster_damage_var")) or 25
+local velocity_var = tonumber(minetest.settings:get("mobs_npc_monster_velocity_var")) or 15
+local knockback_var = tonumber(minetest.settings:get("mobs_npc_monster_knockback_var")) or 20
 
 -- -----------------------------------------------------------------------------
 -- Helpers
@@ -187,7 +187,7 @@ for tex_rel, tex_name in pairs(texture_set) do
 
         if not inv_icon_path then
             inv_icon_filename = tex_name
-            minetest.log("warning", "[randomized_humanoids] Missing spawn egg icon for " .. char_name .. ", falling back to " .. inv_icon_filename)
+            minetest.log("warning", "[mobs_npc_monster] Missing spawn egg icon for " .. char_name .. ", falling back to " .. inv_icon_filename)
         end
 
         discovered_characters[char_name] = {
@@ -202,7 +202,7 @@ end
 local valid_chars = 0
 for k,v in pairs(discovered_characters) do valid_chars = valid_chars + 1 end
 
-minetest.log("action", "[randomized_humanoids] Discovered " .. total_textures .. " textures, " .. total_inv_icons .. " spawn egg icons, " .. valid_chars .. " valid character sets")
+minetest.log("action", "[mobs_npc_monster] Discovered " .. total_textures .. " textures, " .. total_inv_icons .. " spawn egg icons, " .. valid_chars .. " valid character sets")
 
 -- -----------------------------------------------------------------------------
 -- Registration Wrapper
